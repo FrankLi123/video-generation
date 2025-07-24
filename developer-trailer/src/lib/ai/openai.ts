@@ -72,6 +72,8 @@ Return the response as a JSON object with this exact structure:
 
 export async function generateScript(input: ScriptGenerationInput): Promise<GeneratedScript> {
   try {
+    console.log('🚀 Starting script generation for project:', input.projectTitle);
+    
     const {
       projectTitle,
       projectDescription,
@@ -97,6 +99,9 @@ Project Details:
 Please generate a compelling video script that showcases this project effectively.
 `;
 
+    console.log('📝 Sending prompt to OpenAI:', userPrompt);
+    console.log('⏱️ Making OpenAI API call...');
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
@@ -111,15 +116,19 @@ Please generate a compelling video script that showcases this project effectivel
       ],
       temperature: 0.7,
       max_tokens: 1500,
-      response_format: { type: "json_object" }
     });
 
     const response = completion.choices[0]?.message?.content;
+    console.log('✅ OpenAI API call completed');
+    console.log('📊 Token usage:', completion.usage);
+    console.log('📄 Raw response:', response);
+    
     if (!response) {
       throw new Error('No response from OpenAI');
     }
 
     const generatedScript = JSON.parse(response) as GeneratedScript;
+    console.log('🎬 Generated script:', generatedScript.title);
     
     // Validate the response structure
     if (!generatedScript.title || !generatedScript.script || !generatedScript.scenes) {
@@ -132,9 +141,10 @@ Please generate a compelling video script that showcases this project effectivel
       id: scene.id || `scene_${index + 1}`
     }));
 
+    console.log('✨ Script generation completed successfully');
     return generatedScript;
   } catch (error) {
-    console.error('Error generating script:', error);
+    console.error('❌ Error generating script:', error);
     throw new Error(
       error instanceof Error 
         ? `Script generation failed: ${error.message}`
@@ -172,7 +182,6 @@ Please update the script based on the feedback while maintaining the same JSON s
       ],
       temperature: 0.7,
       max_tokens: 1500,
-      response_format: { type: "json_object" }
     });
 
     const response = completion.choices[0]?.message?.content;

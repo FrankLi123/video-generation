@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { createTRPCRouter, protectedProcedure } from '../server';
+import { createTRPCRouter, protectedProcedure, publicProcedure } from '../server';
+import { generateScript as generateScriptWithAI } from '@/lib/ai/openai';
 import { projects } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { addScriptGenerationJob, addScriptRefinementJob, getJobStatus } from '@/lib/queue/script-queue';
@@ -25,49 +26,51 @@ const jobStatusSchema = z.object({
 
 export const scriptRouter = createTRPCRouter({
   // Generate a new script for a project
-  generateScript: protectedProcedure
+  generateScript: publicProcedure
     .input(scriptGenerationSchema)
     .mutation(async ({ ctx, input }) => {
+      console.log('🚀 generateScript called with input:', input);
       const { projectId, targetAudience, keyFeatures, tone, duration } = input;
-      const userId = ctx.userId;
-
-      if (!ctx.db) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Database connection not available',
-        });
-      }
 
       try {
-        // Get project details
-        const [project] = await ctx.db
-          .select()
-          .from(projects)
-          .where(eq(projects.id, projectId))
-          .limit(1);
+        console.log('📊 Fetching project from database:', projectId);
+        // Get project details from Supabase
+        const { data: project, error: projectError } = await ctx.supabase
+          .from('projects')
+          .select('*')
+          .eq('id', projectId)
+          .single();
 
-        if (!project) {
+        if (projectError || !project) {
+          console.error('❌ Project not found:', projectError);
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: 'Project not found',
           });
         }
 
-        // Verify ownership
-        if (project.user_id !== userId) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'You do not have permission to generate scripts for this project',
-          });
-        }
+        console.log('✅ Project found:', {
+          title: project.title,
+          description: project.description,
+          hasPersonalPhoto: !!project.personal_photo_url,
+          productImagesCount: Array.isArray(project.product_images) ? project.product_images.length : 0
+        });
 
-        // Check if script generation is already in progress
-        if (project.script_status === 'processing') {
-          throw new TRPCError({
-            code: 'CONFLICT',
-            message: 'Script generation is already in progress',
-          });
-        }
+        // Set status to processing
+        console.log('📝 Setting project status to processing...');
+        await ctx.supabase
+          .from('projects')
+          .update({
+            script_status: 'processing',
+            script_generation_params: {
+              targetAudience,
+              keyFeatures,
+              tone,
+              duration,
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', projectId);
 
         // Prepare script generation input
         const scriptInput = {
@@ -81,56 +84,43 @@ export const scriptRouter = createTRPCRouter({
           duration,
         };
 
-        // Update project status to processing
-        await ctx.db
-          .update(projects)
-          .set({
-            script_status: 'processing',
-            script_generation_params: {
-              targetAudience,
-              keyFeatures,
-              tone,
-              duration,
-            },
-            updated_at: new Date(),
-          })
-          .where(eq(projects.id, projectId));
+        console.log('🤖 Calling OpenAI with script input:', scriptInput);
 
-        // Add job to queue
-        const job = await addScriptGenerationJob(projectId, userId, scriptInput);
+        // Generate script directly with OpenAI
+        const generatedScript = await generateScriptWithAI(scriptInput);
 
-        // Update project with job ID
-        await ctx.db
-          .update(projects)
-          .set({
-            script_job_id: job.id,
-            updated_at: new Date(),
+        console.log('✨ OpenAI response received:', generatedScript);
+
+        // Update project with generated script
+        await ctx.supabase
+          .from('projects')
+          .update({
+            generated_script: generatedScript,
+            script_status: 'completed',
+            updated_at: new Date().toISOString(),
           })
-          .where(eq(projects.id, projectId));
+          .eq('id', projectId);
 
         return {
           success: true,
-          jobId: job.id,
-          message: 'Script generation started',
+          script: generatedScript,
+          message: 'Script generated successfully',
         };
       } catch (error) {
-        // Reset project status on error
-        await ctx.db
-          .update(projects)
-          .set({
+        // Set status to failed on error
+        await ctx.supabase
+          .from('projects')
+          .update({
             script_status: 'failed',
-            updated_at: new Date(),
+            updated_at: new Date().toISOString(),
           })
-          .where(eq(projects.id, projectId));
+          .eq('id', projectId);
 
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-
+        console.error('Script generation error:', error);
+        
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to start script generation',
-          cause: error,
+          message: error instanceof Error ? error.message : 'Failed to generate script',
         });
       }
     }),
@@ -260,32 +250,24 @@ export const scriptRouter = createTRPCRouter({
     }),
 
   // Get project script
-  getProjectScript: protectedProcedure
+  getProjectScript: publicProcedure
     .input(z.object({ projectId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const { projectId } = input;
-      const userId = ctx.userId;
-
-      if (!ctx.db) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Database connection not available',
-        });
-      }
 
       try {
-        const [project] = await ctx.db
-          .select({
-            id: projects.id,
-            user_id: projects.user_id,
-            generated_script: projects.generated_script,
-            script_status: projects.script_status,
-            script_job_id: projects.script_job_id,
-            script_generation_params: projects.script_generation_params,
-          })
-          .from(projects)
-          .where(eq(projects.id, projectId))
-          .limit(1);
+        const { data: project, error } = await ctx.supabase
+          .from('projects')
+          .select('id, generated_script, script_status, script_job_id, script_generation_params')
+          .eq('id', projectId)
+          .single();
+
+        if (error) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Project not found',
+          });
+        }
 
         if (!project) {
           throw new TRPCError({
@@ -294,18 +276,11 @@ export const scriptRouter = createTRPCRouter({
           });
         }
 
-        // Verify ownership
-        if (project.user_id !== userId) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'You do not have permission to view this project script',
-          });
-        }
-
+        // If the script is not generated yet, return pending status
         return {
           projectId: project.id,
           script: project.generated_script,
-          status: project.script_status,
+          status: project.generated_script ? project.script_status : 'pending',
           jobId: project.script_job_id,
           generationParams: project.script_generation_params,
         };
@@ -317,7 +292,6 @@ export const scriptRouter = createTRPCRouter({
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to get project script',
-          cause: error,
         });
       }
     }),

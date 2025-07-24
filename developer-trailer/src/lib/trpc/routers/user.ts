@@ -105,8 +105,8 @@ export const userRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { data: user } = await ctx.supabase.auth.getUser();
       if (!user.user) {
-        throw new Error('User not found');
-      }
+      throw new Error('User not found');
+    }
 
       // 更新用户信息
       const { error } = await ctx.supabase
@@ -123,5 +123,5 @@ export const userRouter = createTRPCRouter({
       }
 
       return { success: true };
-    }),
+  }),
 }); 
