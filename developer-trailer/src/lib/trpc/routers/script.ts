@@ -126,7 +126,7 @@ export const scriptRouter = createTRPCRouter({
     }),
 
   // Refine an existing script
-  refineScript: protectedProcedure
+  refineScript: publicProcedure
     .input(scriptRefinementSchema)
     .mutation(async ({ ctx, input }) => {
       const { projectId, userFeedback } = input;
@@ -232,7 +232,7 @@ export const scriptRouter = createTRPCRouter({
     }),
 
   // Get job status
-  getJobStatus: protectedProcedure
+  getJobStatus: publicProcedure
     .input(jobStatusSchema)
     .query(async ({ input }) => {
       const { jobId } = input;
@@ -263,13 +263,15 @@ export const scriptRouter = createTRPCRouter({
           .single();
 
         if (error) {
+          console.error('Supabase error in getProjectScript:', error);
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: 'Project not found',
           });
         }
-
+        
         if (!project) {
+          console.error('No project found for id:', projectId);
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: 'Project not found',
@@ -297,54 +299,43 @@ export const scriptRouter = createTRPCRouter({
     }),
 
   // Clear script (reset to allow regeneration)
-  clearScript: protectedProcedure
+  clearScript: publicProcedure
     .input(z.object({ projectId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const { projectId } = input;
-      const userId = ctx.userId;
-
-      if (!ctx.db) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Database connection not available',
-        });
-      }
-
       try {
+        console.log('clearScript called for projectId:', projectId);
         // Get project details
-        const [project] = await ctx.db
-          .select()
-          .from(projects)
-          .where(eq(projects.id, projectId))
-          .limit(1);
-
-        if (!project) {
+        const { data: project, error: projectError } = await ctx.supabase
+          .from('projects')
+          .select('*')
+          .eq('id', projectId)
+          .single();
+        if (projectError || !project) {
+          console.error('Project not found or error:', projectError);
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: 'Project not found',
           });
         }
-
-        // Verify ownership
-        if (project.user_id !== userId) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'You do not have permission to clear this project script',
-          });
-        }
-
         // Clear script data
-        await ctx.db
-          .update(projects)
-          .set({
+        const { error: updateError } = await ctx.supabase
+          .from('projects')
+          .update({
             generated_script: null,
             script_status: 'pending',
             script_job_id: null,
             script_generation_params: null,
-            updated_at: new Date(),
+            updated_at: new Date().toISOString(),
           })
-          .where(eq(projects.id, projectId));
-
+          .eq('id', projectId);
+        if (updateError) {
+          console.error('Error updating project:', updateError);
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to clear script',
+          });
+        }
         return {
           success: true,
           message: 'Script cleared successfully',
@@ -353,7 +344,7 @@ export const scriptRouter = createTRPCRouter({
         if (error instanceof TRPCError) {
           throw error;
         }
-
+        console.error('Unexpected error in clearScript:', error);
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to clear script',

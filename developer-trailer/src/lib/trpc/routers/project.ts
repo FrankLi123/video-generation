@@ -174,6 +174,7 @@ export const projectRouter = createTRPCRouter({
   getById: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
+      console.log('getById called with id:', input.id);
       const { data: project, error: projectError } = await ctx.supabase
         .from('projects')
         .select('*')
@@ -181,6 +182,7 @@ export const projectRouter = createTRPCRouter({
         .single();
 
       if (projectError) {
+        console.error('Supabase getById error:', projectError);
         throw new Error('Project not found');
       }
 
@@ -189,7 +191,7 @@ export const projectRouter = createTRPCRouter({
         .from('video_segments')
         .select('*')
         .eq('project_id', input.id)
-        .order('segment_order', { ascending: true });
+        .order('segment_index', { ascending: true });
 
       if (segmentsError) {
         console.error('Error fetching segments:', segmentsError);

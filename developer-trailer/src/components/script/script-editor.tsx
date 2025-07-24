@@ -283,7 +283,7 @@ export function ScriptEditor({ projectId }: ScriptEditorProps) {
                 <h3 className="font-semibold text-gray-900 mb-2">Generated Script</h3>
                 <div className="prose prose-sm max-w-none">
                   <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono bg-white p-4 rounded border">
-                    {scriptData.script}
+                    {typeof scriptData.script === 'string' ? scriptData.script : JSON.stringify(scriptData.script, null, 2)}
                   </pre>
                 </div>
               </div>
@@ -333,7 +333,7 @@ export function ScriptEditor({ projectId }: ScriptEditorProps) {
                 <h3 className="font-semibold text-gray-900 mb-2">Current Script</h3>
                 <div className="prose prose-sm max-w-none">
                   <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono bg-white p-4 rounded border">
-                    {scriptData.script}
+                    {typeof scriptData.script === 'string' ? scriptData.script : JSON.stringify(scriptData.script, null, 2)}
                   </pre>
                 </div>
               </div>
