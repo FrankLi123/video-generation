@@ -202,42 +202,102 @@ class FalVeoClient {
       if (status.status === 'COMPLETED') {
         console.log('🎉 Video generation completed! Fetching result...');
 
-        // Get result
-        const resultStartTime = Date.now();
-        const result = await fal.queue.result(modelEndpoint, {
-          requestId: jobId
-        });
+        try {
+          // Get result using the response_url from status
+          const resultStartTime = Date.now();
 
-        const resultTime = Date.now() - resultStartTime;
-        console.log('📥 Result fetched in:', `${resultTime}ms`);
-        console.log('🎬 Video result:', JSON.stringify(result.data, null, 2));
-
-        if (result.data && result.data.video && result.data.video.url) {
-          console.log('✅ Video URL obtained:', result.data.video.url);
-          console.log('📊 Video details:', {
-            url: result.data.video.url,
-            fileSize: result.data.video.file_size || 'unknown',
-            contentType: result.data.video.content_type || 'video/mp4'
+          // Try to get result using the queue.result method
+          const result = await fal.queue.result(modelEndpoint, {
+            requestId: jobId
           });
 
-          return {
-            status: 'completed',
-            progress: 100,
-            message: 'Video generation completed',
-            result: {
-              videoUrl: result.data.video.url,
-              duration: 5, // Seedance default duration
-              resolution: '720p',
-              metadata: {
-                generatedAt: new Date().toISOString(),
-                prompt: 'Generated via fal.ai Seedance',
-                aspectRatio: '16:9',
+          const resultTime = Date.now() - resultStartTime;
+          console.log('📥 Result fetched in:', `${resultTime}ms`);
+          console.log('🎬 Video result:', JSON.stringify(result, null, 2));
+
+          // Check if we have video data (result.data.video for fal.ai structure)
+          if (result && result.data && result.data.video && result.data.video.url) {
+            console.log('✅ Video URL obtained:', result.data.video.url);
+            console.log('📊 Video details:', {
+              url: result.data.video.url,
+              fileSize: result.data.video.file_size || 'unknown',
+              contentType: result.data.video.content_type || 'video/mp4'
+            });
+
+            return {
+              status: 'completed',
+              progress: 100,
+              message: 'Video generation completed',
+              result: {
+                videoUrl: result.data.video.url,
+                duration: 5, // Seedance default duration
+                resolution: '720p',
+                metadata: {
+                  generatedAt: new Date().toISOString(),
+                  prompt: 'Generated via fal.ai Seedance',
+                  aspectRatio: '16:9',
+                },
               },
-            },
+            };
+          } else {
+            console.error('❌ Video result missing video URL');
+            console.error('📋 Full result structure:', JSON.stringify(result, null, 2));
+
+            // Return failed status if no video URL
+            return {
+              status: 'failed',
+              progress: 0,
+              message: 'Video generation completed but no video URL found',
+            };
+          }
+
+        } catch (resultError) {
+          console.error('❌ Error fetching result:', resultError);
+          console.error('📋 Error details:', {
+            message: resultError instanceof Error ? resultError.message : 'Unknown error',
+            status: (resultError as any)?.status,
+            body: (resultError as any)?.body
+          });
+
+          // If result fetching fails, try alternative approach using response_url
+          if (status.response_url) {
+            console.log('🔄 Trying alternative result fetch using response_url:', status.response_url);
+            try {
+              const response = await fetch(status.response_url);
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+              }
+              const resultData = await response.json();
+
+              console.log('📥 Alternative result:', JSON.stringify(resultData, null, 2));
+
+              if (resultData && resultData.video && resultData.video.url) {
+                return {
+                  status: 'completed',
+                  progress: 100,
+                  message: 'Video generation completed (via response_url)',
+                  result: {
+                    videoUrl: resultData.video.url,
+                    duration: 5,
+                    resolution: '720p',
+                    metadata: {
+                      generatedAt: new Date().toISOString(),
+                      prompt: 'Generated via fal.ai Seedance',
+                      aspectRatio: '16:9',
+                    },
+                  },
+                };
+              }
+            } catch (altError) {
+              console.error('❌ Alternative result fetch also failed:', altError);
+            }
+          }
+
+          return {
+            status: 'failed',
+            progress: 0,
+            message: `Failed to fetch result: ${resultError instanceof Error ? resultError.message : 'Unknown error'}`,
           };
-        } else {
-          console.error('❌ Video result missing video URL');
-          console.error('📋 Full result:', JSON.stringify(result, null, 2));
         }
       } else if (status.status === 'FAILED') {
         return {
