@@ -17,12 +17,11 @@ export const videoRouter = createTRPCRouter({
       console.log('🎬 FAL.AI SEEDANCE GENERATION:', input);
 
       try {
-        // 使用 fal.ai Seedance 客户端
-        const { generateVideo } = await import('@/lib/ai/veo-fal');
+        // Use the queue system for video generation
+        const { addSimpleVideoJob } = await import('@/lib/queue/simple-video-queue');
 
-        const result = await generateVideo({
+        const queueJobId = await addSimpleVideoJob({
           prompt: input.prompt,
-          model: 'seedance', // Force Seedance only
           aspectRatio: input.aspectRatio,
           resolution: input.resolution,
           duration: input.duration,
@@ -30,17 +29,17 @@ export const videoRouter = createTRPCRouter({
           cameraFixed: input.cameraFixed,
         });
 
-        console.log('✅ FAL.AI SEEDANCE RESULT:', result);
+        console.log('✅ VIDEO JOB ADDED TO QUEUE:', queueJobId);
 
         return {
           success: true,
-          jobId: result.jobId,
+          jobId: queueJobId, // Return queue job ID
           model: 'seedance',
-          message: 'fal.ai Seedance video generation started',
+          message: 'Video generation job added to queue',
         };
 
       } catch (error) {
-        console.error('❌ FAL.AI SEEDANCE ERROR:', error);
+        console.error('❌ QUEUE VIDEO GENERATION ERROR:', error);
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: `Video generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -57,18 +56,43 @@ export const videoRouter = createTRPCRouter({
       console.log('📊 FAL.AI SEEDANCE STATUS CHECK:', input.jobId);
 
       try {
-        const { getVideoJobStatus } = await import('@/lib/ai/veo-fal');
-        const status = await getVideoJobStatus(input.jobId);
+        const { getSimpleJobStatus } = await import('@/lib/queue/simple-video-queue');
+        const queueJob = await getSimpleJobStatus(input.jobId);
 
-        console.log('✅ FAL.AI SEEDANCE STATUS:', status);
+        console.log('✅ QUEUE JOB STATUS:', queueJob);
+
+        if (!queueJob) {
+          return {
+            success: false,
+            status: 'error',
+            message: 'Job not found',
+          };
+        }
+
+        // Map queue job status to our expected format
+        let status = 'processing';
+        let progress = queueJob.progress || 0;
+        let result = undefined;
+
+        if (queueJob.returnvalue?.success) {
+          status = 'completed';
+          progress = 100;
+          result = queueJob.returnvalue.result;
+        } else if (queueJob.failedReason) {
+          status = 'failed';
+          progress = 0;
+        }
 
         return {
           success: true,
-          ...status,
+          status,
+          progress,
+          result,
+          message: queueJob.failedReason || 'Video generation in progress',
         };
 
       } catch (error) {
-        console.error('❌ FAL.AI SEEDANCE STATUS ERROR:', error);
+        console.error('❌ QUEUE STATUS CHECK ERROR:', error);
         return {
           success: false,
           status: 'error',

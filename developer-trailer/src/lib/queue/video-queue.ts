@@ -1,33 +1,30 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { createBullMQConnection } from './redis';
-import { 
-  generateVideo, 
-  getVideoJobStatus, 
-  getVideoJobResult,
-  sceneToVideoPrompt,
+import {
+  generateVideo,
+  getVideoJobStatus,
   type VideoGenerationInput,
-  type VideoGenerationResult 
-} from '../ai/veo';
-import { createClient } from '@/lib/supabase/server';
-import { video_jobs, video_segments, projects } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
-import { db } from '@/lib/db';
+} from '../ai/veo-fal';
+import type { VideoGenerationProgress } from '../ai/veo-fal';
 
-// Job data types
+// Simplified job data types for MVP
 export interface VideoGenerationJobData {
-  projectId: string;
-  userId: string;
-  segmentId?: string; // For individual segment generation
-  jobType: 'full_video' | 'segment';
-  input: VideoGenerationInput;
-  retryCount?: number;
+  prompt: string;
+  aspectRatio?: '16:9' | '9:16' | '1:1' | '4:3' | '9:21';
+  resolution?: '480p' | '720p' | '1080p';
+  duration?: '5' | '10';
+  seed?: number;
+  cameraFixed?: boolean;
+  // Metadata
+  userId?: string;
+  projectId?: string;
 }
 
 export interface VideoJobResult {
   success: boolean;
-  result?: VideoGenerationResult;
+  result?: VideoGenerationProgress['result'];
   error?: string;
-  segmentId?: string;
+  falJobId?: string;
 }
 
 // Queue configuration
