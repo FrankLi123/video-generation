@@ -32,7 +32,7 @@ export function createBullMQConnection(): IORedis {
     return new IORedis({
       host: 'localhost',
       port: 6379,
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: null, // Required for BullMQ
       enableAutoPipelining: true,
       lazyConnect: true,
       retryDelayOnFailover: 100,
@@ -51,7 +51,7 @@ export function createBullMQConnection(): IORedis {
     port: port,
     password: token,
     tls: {},
-    maxRetriesPerRequest: 3,
+    maxRetriesPerRequest: null, // Required for BullMQ
     enableAutoPipelining: true,
     lazyConnect: true,
   });

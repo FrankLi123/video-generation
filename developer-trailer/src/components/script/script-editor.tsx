@@ -34,11 +34,29 @@ export function ScriptEditor({ projectId }: ScriptEditorProps) {
   });
   const [refinementFeedback, setRefinementFeedback] = useState('');
 
+  // State for controlling polling
+  const [isPolling, setIsPolling] = useState(false);
+
   // Queries
   const { data: scriptData, refetch: refetchScript } = api.script.getProjectScript.useQuery(
     { projectId },
-    { refetchInterval: 2000 }
+    {
+      refetchInterval: isPolling ? 3000 : false, // 使用状态控制轮询
+      refetchOnWindowFocus: false, // 避免窗口焦点时重新请求
+    }
   );
+
+  // 根据脚本状态控制轮询
+  useEffect(() => {
+    const shouldPoll = scriptData?.script_status === 'processing';
+    setIsPolling(shouldPoll);
+
+    if (shouldPoll) {
+      console.log('📊 Script is processing, enabling polling');
+    } else {
+      console.log('📊 Script not processing, disabling polling');
+    }
+  }, [scriptData?.script_status]);
 
   // Mutations
   const generateScript = api.script.generateScript.useMutation({

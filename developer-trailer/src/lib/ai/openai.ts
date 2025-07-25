@@ -1,12 +1,16 @@
 import OpenAI from 'openai';
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('OPENAI_API_KEY is required');
-}
+// Initialize OpenAI client only if API key is available
+let openai: OpenAI | null = null;
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+  console.log('✅ OpenAI client initialized');
+} else {
+  console.warn('⚠️ OPENAI_API_KEY not found - OpenAI features will use fallbacks');
+}
 
 export interface ScriptGenerationInput {
   projectTitle: string;
@@ -73,7 +77,11 @@ Return the response as a JSON object with this exact structure:
 export async function generateScript(input: ScriptGenerationInput): Promise<GeneratedScript> {
   try {
     console.log('🚀 Starting script generation for project:', input.projectTitle);
-    
+
+    if (!openai) {
+      throw new Error('OpenAI client not initialized - missing API key');
+    }
+
     const {
       projectTitle,
       projectDescription,
@@ -154,10 +162,14 @@ Please generate a compelling video script that showcases this project effectivel
 }
 
 export async function refineScript(
-  originalScript: GeneratedScript, 
+  originalScript: GeneratedScript,
   userFeedback: string
 ): Promise<GeneratedScript> {
   try {
+    if (!openai) {
+      throw new Error('OpenAI client not initialized - missing API key');
+    }
+
     const refinementPrompt = `
 You are refining a video script based on user feedback. Here's the original script:
 
@@ -193,9 +205,74 @@ Please update the script based on the feedback while maintaining the same JSON s
   } catch (error) {
     console.error('Error refining script:', error);
     throw new Error(
-      error instanceof Error 
+      error instanceof Error
         ? `Script refinement failed: ${error.message}`
         : 'Script refinement failed with unknown error'
     );
   }
-} 
+}
+
+/**
+ * Simplified script generation for MVP - returns just a video prompt
+ */
+export async function generateSimpleVideoPrompt(description: string): Promise<string> {
+  try {
+    console.log('🤖 Starting simple video prompt generation for:', description);
+
+    if (!openai) {
+      console.warn('⚠️ OpenAI client not available, using fallback');
+      return description;
+    }
+
+    const prompt = `Transform this project description into a compelling, concise video script prompt for text-to-video generation.
+
+Project Description: ${description}
+
+Requirements:
+- Create a single, vivid sentence that describes a visual scene
+- Focus on visual elements, actions, and atmosphere
+- Make it suitable for AI video generation (like Seedance)
+- Keep it under 100 characters
+- Be specific about what viewers will see
+- Avoid complex scenes, focus on simple but engaging visuals
+
+Example: "A sleek mobile app interface glowing on a smartphone screen in a modern coffee shop"
+
+Generate only the video script prompt (no quotes, just the prompt):`;
+
+    console.log('📤 Sending request to OpenAI...');
+    console.log('📋 Prompt:', prompt);
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional video script writer specializing in creating compelling prompts for AI video generation. Generate concise, visual descriptions that work well with text-to-video AI models.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 100,
+      temperature: 0.7,
+    });
+
+    console.log('📥 OpenAI response received');
+    console.log('💰 Token usage:', completion.usage);
+
+    const script = completion.choices[0]?.message?.content?.trim() || description;
+
+    console.log('✅ Generated video prompt:', script);
+
+    return script;
+
+  } catch (error) {
+    console.error('❌ Error generating simple video prompt:', error);
+    console.log('🔄 Falling back to original description');
+
+    // Fallback to original description if OpenAI fails
+    return description;
+  }
+}
