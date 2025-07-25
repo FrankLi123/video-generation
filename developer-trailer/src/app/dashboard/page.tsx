@@ -6,6 +6,7 @@ import { Plus, Eye } from 'lucide-react';
 import { api } from '@/lib/trpc/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth/auth-context';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -89,6 +90,22 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Quick Actions */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>🚀 Quick Actions</CardTitle>
+            <p className="text-sm text-gray-600">Generate videos quickly from text descriptions</p>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full">
+              <Link href="/create-project">
+                <Plus className="w-4 h-4 mr-2" />
+                Create New Video
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (

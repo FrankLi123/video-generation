@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScriptEditor } from '@/components/script/script-editor';
 import { FileUpload } from '@/components/upload/file-upload';
+import { VideoProgress } from '@/components/video/video-progress';
 import { ArrowLeft, Calendar, User, Image as ImageIcon, Video, Upload, Wand2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
@@ -446,9 +447,21 @@ export default function ProjectDetailPage() {
           )}
         </div>
 
-        {/* Script Editor */}
-        <div className="lg:col-span-2">
+        {/* Script Editor and Video Generation */}
+        <div className="lg:col-span-2 space-y-6">
           <ScriptEditor projectId={projectId} />
+
+          {/* Video Generation Progress */}
+          {project.script_status === 'completed' && (
+            <VideoProgress
+              projectId={projectId}
+              onVideoComplete={(videoUrl) => {
+                console.log('🎉 Video generation completed:', videoUrl);
+                toast.success('Video generation completed!');
+                refetch();
+              }}
+            />
+          )}
         </div>
       </div>
     </div>
