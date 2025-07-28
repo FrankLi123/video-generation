@@ -110,7 +110,7 @@ export default function CreateProjectPage() {
         {/* Input Form */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>What's your idea?</CardTitle>
+            <CardTitle>What&apos;s your idea?</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>

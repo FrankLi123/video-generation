@@ -1,16 +1,15 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 import { TRPCProvider } from '@/components/providers/trpc-provider';
 import { AuthProvider } from '@/lib/auth/auth-context';
-import { Navbar } from '@/components/layout/navbar';
 import { Toaster } from 'sonner';
 
-const inter = Inter({ subsets: ['latin'] });
-
 export const metadata: Metadata = {
-  title: 'Developer Trailer - AI Video Generation for Developers',
-  description: 'Create stunning promotional videos for your projects with AI',
+  title: 'TrailerAI - AI-Powered Video Generation',
+  description: 'Create stunning AI-generated trailers in minutes with advanced artificial intelligence',
+  generator: 'TrailerAI',
 };
 
 export default function RootLayout({
@@ -20,19 +19,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <TRPCProvider>
-          <AuthProvider>
-            <div className="min-h-screen bg-background">
-              <Navbar />
-              <main>
-                {children}
-              </main>
-            </div>
-            <Toaster position="top-right" />
-          </AuthProvider>
-        </TRPCProvider>
+      <head>
+        <style>{`
+html {
+  font-family: ${GeistSans.style.fontFamily};
+  --font-sans: ${GeistSans.variable};
+  --font-mono: ${GeistMono.variable};
+}
+        `}</style>
+      </head>
+      <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans`}>
+        {children}
       </body>
     </html>
   );
-} 
+}

@@ -1,0 +1,407 @@
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { AnimatedSection } from "@/components/animated-section"
+import { motion } from "framer-motion"
+import {
+  Upload,
+  Video,
+  ImageIcon,
+  Music,
+  FileText,
+  X,
+  ArrowLeft,
+  ArrowRight,
+  Sparkles,
+  Clock,
+  Target,
+  Wand2,
+} from "lucide-react"
+import Link from "next/link"
+
+interface Asset {
+  id: string
+  type: "video" | "image" | "audio" | "text"
+  name: string
+  url?: string
+  selected: boolean
+}
+
+export default function GeneratePage() {
+  const [projectName, setProjectName] = useState("")
+  const [description, setDescription] = useState("")
+  const [assets, setAssets] = useState<Asset[]>([])
+  const [targetAudience, setTargetAudience] = useState("")
+  const [trailerStyle, setTrailerStyle] = useState("")
+  const [duration, setDuration] = useState("60")
+  const [includeVoiceover, setIncludeVoiceover] = useState(false)
+  const [includeMusic, setIncludeMusic] = useState(true)
+
+  const handleAddAsset = (type: Asset["type"]) => {
+    const newAsset: Asset = {
+      id: Date.now().toString(),
+      type,
+      name: `${type}_${assets.length + 1}`,
+      selected: true,
+    }
+    setAssets([...assets, newAsset])
+  }
+
+  const handleRemoveAsset = (id: string) => {
+    setAssets(assets.filter((asset) => asset.id !== id))
+  }
+
+  const handleSelectAll = () => {
+    setAssets(assets.map((asset) => ({ ...asset, selected: true })))
+  }
+
+  const handleUnselectAll = () => {
+    setAssets(assets.map((asset) => ({ ...asset, selected: false })))
+  }
+
+  const handleDeleteSelected = () => {
+    setAssets(assets.filter((asset) => !asset.selected))
+  }
+
+  const toggleAssetSelection = (id: string) => {
+    setAssets(assets.map((asset) => (asset.id === id ? { ...asset, selected: !asset.selected } : asset)))
+  }
+
+  const getAssetIcon = (type: Asset["type"]) => {
+    switch (type) {
+      case "video":
+        return <Video className="w-4 h-4" />
+      case "image":
+        return <ImageIcon className="w-4 h-4" />
+      case "audio":
+        return <Music className="w-4 h-4" />
+      case "text":
+        return <FileText className="w-4 h-4" />
+    }
+  }
+
+  const trailerStyles = [
+    { id: "cinematic", name: "Cinematic", description: "Epic, movie-like feel with dramatic pacing" },
+    { id: "modern", name: "Modern", description: "Clean, contemporary style with smooth transitions" },
+    { id: "energetic", name: "Energetic", description: "Fast-paced with dynamic cuts and effects" },
+    { id: "minimal", name: "Minimal", description: "Simple, elegant approach focusing on content" },
+  ]
+
+  return (
+    <div className="min-h-screen bg-background-primary text-text-primary">
+      {/* Header */}
+      <header className="border-b border-background-secondary/50 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-4">
+          <nav className="flex items-center justify-between">
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+                <Video className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-heading font-bold">TrailerAI</span>
+              <Badge className="ml-2 bg-secondary/20 text-secondary border-secondary/30">AI Trailer Generator</Badge>
+            </Link>
+
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 text-sm text-text-secondary">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span>10 credits remaining</span>
+              </div>
+              <Button variant="outline" size="sm">
+                Upgrade
+              </Button>
+            </div>
+          </nav>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <AnimatedSection>
+          <div className="text-center mb-8">
+            <h1 className="text-3xl md:text-4xl font-heading font-bold mb-4">Create your AI-powered trailer</h1>
+            <p className="text-text-secondary text-lg">
+              Provide your content details and let our AI craft a compelling trailer that captures your story
+            </p>
+          </div>
+        </AnimatedSection>
+
+        <div className="space-y-8">
+          {/* Project Details */}
+          <AnimatedSection delay={0.1}>
+            <Card className="bg-background-secondary/50 border-background-tertiary">
+              <CardContent className="p-6">
+                <h2 className="text-xl font-heading font-semibold mb-6 flex items-center">
+                  <Wand2 className="w-5 h-5 mr-2 text-primary" />
+                  Project Details
+                </h2>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="project-name">Project / Content Title *</Label>
+                    <Input
+                      id="project-name"
+                      placeholder="Enter your project title"
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                      className="bg-background-tertiary border-background-tertiary focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="target-audience">Target Audience</Label>
+                    <Input
+                      id="target-audience"
+                      placeholder="e.g., Young adults, Tech enthusiasts"
+                      value={targetAudience}
+                      onChange={(e) => setTargetAudience(e.target.value)}
+                      className="bg-background-tertiary border-background-tertiary focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-2">
+                  <Label htmlFor="description">Content Description *</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe your content, key themes, and what makes it compelling..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="bg-background-tertiary border-background-tertiary focus:border-primary min-h-[120px] resize-none"
+                    maxLength={1000}
+                  />
+                  <div className="text-right text-sm text-text-muted">{description.length}/1000</div>
+                </div>
+              </CardContent>
+            </Card>
+          </AnimatedSection>
+
+          {/* Trailer Configuration */}
+          <AnimatedSection delay={0.2}>
+            <Card className="bg-background-secondary/50 border-background-tertiary">
+              <CardContent className="p-6">
+                <h2 className="text-xl font-heading font-semibold mb-6 flex items-center">
+                  <Target className="w-5 h-5 mr-2 text-primary" />
+                  Trailer Configuration
+                </h2>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="duration">Duration (seconds)</Label>
+                    <select
+                      id="duration"
+                      value={duration}
+                      onChange={(e) => setDuration(e.target.value)}
+                      className="w-full px-3 py-2 bg-background-tertiary border border-background-tertiary rounded-md focus:border-primary focus:outline-none"
+                    >
+                      <option value="30">30 seconds</option>
+                      <option value="60">60 seconds</option>
+                      <option value="90">90 seconds</option>
+                      <option value="120">2 minutes</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Trailer Style</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {trailerStyles.map((style) => (
+                        <button
+                          key={style.id}
+                          onClick={() => setTrailerStyle(style.id)}
+                          className={`p-3 rounded-lg border text-left transition-all ${
+                            trailerStyle === style.id
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-background-tertiary bg-background-tertiary hover:border-primary/50"
+                          }`}
+                        >
+                          <div className="font-medium text-sm">{style.name}</div>
+                          <div className="text-xs text-text-muted mt-1">{style.description}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="voiceover">AI Voiceover</Label>
+                      <p className="text-sm text-text-muted">Add AI-generated narration to your trailer</p>
+                    </div>
+                    <Switch id="voiceover" checked={includeVoiceover} onCheckedChange={setIncludeVoiceover} />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="music">Background Music</Label>
+                      <p className="text-sm text-text-muted">Include AI-selected background music</p>
+                    </div>
+                    <Switch id="music" checked={includeMusic} onCheckedChange={setIncludeMusic} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </AnimatedSection>
+
+          {/* Assets Section */}
+          <AnimatedSection delay={0.3}>
+            <Card className="bg-background-secondary/50 border-background-tertiary">
+              <CardContent className="p-6">
+                <h2 className="text-xl font-heading font-semibold mb-4 flex items-center">
+                  <Upload className="w-5 h-5 mr-2 text-primary" />
+                  Media Assets
+                </h2>
+
+                <div className="mb-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <Sparkles className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-primary">
+                      Upload your best content assets. Higher-quality videos, images, and audio will result in better
+                      AI-generated trailers.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <button
+                    onClick={() => handleAddAsset("video")}
+                    className="p-6 border-2 border-dashed border-background-tertiary hover:border-primary/50 rounded-lg transition-colors group"
+                  >
+                    <Video className="w-8 h-8 mx-auto mb-2 text-text-muted group-hover:text-primary" />
+                    <div className="text-sm font-medium">Add Video</div>
+                    <div className="text-xs text-text-muted">MP4, MOV, AVI</div>
+                  </button>
+
+                  <button
+                    onClick={() => handleAddAsset("image")}
+                    className="p-6 border-2 border-dashed border-background-tertiary hover:border-primary/50 rounded-lg transition-colors group"
+                  >
+                    <ImageIcon className="w-8 h-8 mx-auto mb-2 text-text-muted group-hover:text-primary" />
+                    <div className="text-sm font-medium">Add Images</div>
+                    <div className="text-xs text-text-muted">JPG, PNG, GIF</div>
+                  </button>
+
+                  <button
+                    onClick={() => handleAddAsset("audio")}
+                    className="p-6 border-2 border-dashed border-background-tertiary hover:border-primary/50 rounded-lg transition-colors group"
+                  >
+                    <Music className="w-8 h-8 mx-auto mb-2 text-text-muted group-hover:text-primary" />
+                    <div className="text-sm font-medium">Add Audio</div>
+                    <div className="text-xs text-text-muted">MP3, WAV, M4A</div>
+                  </button>
+
+                  <button
+                    onClick={() => handleAddAsset("text")}
+                    className="p-6 border-2 border-dashed border-background-tertiary hover:border-primary/50 rounded-lg transition-colors group"
+                  >
+                    <FileText className="w-8 h-8 mx-auto mb-2 text-text-muted group-hover:text-primary" />
+                    <div className="text-sm font-medium">Add Script</div>
+                    <div className="text-xs text-text-muted">TXT, DOC, PDF</div>
+                  </button>
+                </div>
+
+                {assets.length > 0 && (
+                  <>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+                      {assets.map((asset) => (
+                        <motion.div
+                          key={asset.id}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          className={`relative p-4 rounded-lg border transition-all cursor-pointer ${
+                            asset.selected
+                              ? "border-primary bg-primary/10"
+                              : "border-background-tertiary bg-background-tertiary hover:border-primary/50"
+                          }`}
+                          onClick={() => toggleAssetSelection(asset.id)}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              {getAssetIcon(asset.type)}
+                              <span className="text-sm font-medium truncate">{asset.name}</span>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleRemoveAsset(asset.id)
+                              }}
+                              className="text-text-muted hover:text-red-400 transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="w-full h-16 bg-background-primary/50 rounded border-2 border-dashed border-background-tertiary flex items-center justify-center">
+                            {getAssetIcon(asset.type)}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center space-x-4 text-sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSelectAll}
+                        className="bg-transparent border-background-tertiary hover:border-primary/50"
+                      >
+                        Select all
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleUnselectAll}
+                        className="bg-transparent border-background-tertiary hover:border-primary/50"
+                      >
+                        Unselect all
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDeleteSelected}
+                        className="bg-transparent border-background-tertiary hover:border-red-500/50 hover:text-red-400"
+                      >
+                        Delete selected
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </AnimatedSection>
+
+          {/* Navigation */}
+          <AnimatedSection delay={0.4}>
+            <div className="flex items-center justify-between pt-8">
+              <Link href="/">
+                <Button variant="outline" className="bg-transparent border-background-tertiary hover:border-primary/50">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+              </Link>
+
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2 text-sm text-text-secondary">
+                  <Clock className="w-4 h-4" />
+                  <span>Estimated generation time: 2-3 minutes</span>
+                </div>
+                <Button
+                  className="bg-primary hover:bg-primary/90 text-background-primary font-medium shadow-glow"
+                  disabled={!projectName || !description}
+                >
+                  Generate Trailer
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          </AnimatedSection>
+        </div>
+      </div>
+    </div>
+  )
+}

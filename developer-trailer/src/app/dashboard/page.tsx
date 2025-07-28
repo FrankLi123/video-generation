@@ -1,153 +1,362 @@
-'use client';
+"use client"
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Eye } from 'lucide-react';
-import { api } from '@/lib/trpc/client';
-import { toast } from 'sonner';
-import { useAuth } from '@/lib/auth/auth-context';
-import Link from 'next/link';
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { AnimatedSection } from "@/components/animated-section"
+import { motion } from "framer-motion"
+import {
+  Video,
+  Plus,
+  Search,
+  Filter,
+  Play,
+  Download,
+  Share2,
+  MoreHorizontal,
+  Calendar,
+  Clock,
+  Eye,
+  Sparkles,
+  TrendingUp,
+  Users,
+  Zap,
+} from "lucide-react"
+import Link from "next/link"
+import Image from "next/image"
+
+interface Project {
+  id: string
+  title: string
+  description: string
+  thumbnail: string
+  duration: string
+  createdAt: string
+  status: "completed" | "processing" | "draft"
+  views: number
+  style: string
+}
 
 export default function DashboardPage() {
-  const { user, loading } = useAuth();
-  // Removed modal state - now using dedicated page
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filterStatus, setFilterStatus] = useState("all")
 
-  const { data: projects = [], refetch } = api.project.getProjects.useQuery(undefined, {
-    enabled: true, // Always enabled for testing
-  });
-
-  // Test tRPC connection
-  const { data: testData } = api.project.test.useQuery();
-  
-  // Test mutation
-  const testMutation = api.project.testMutation.useMutation({
-    onSuccess: (data) => {
-      console.log('Test mutation success:', data);
-      toast.success('Test mutation worked!');
+  // Mock data - in real app, this would come from API
+  const projects: Project[] = [
+    {
+      id: "1",
+      title: "Tech Startup Launch",
+      description: "Dynamic trailer for our SaaS platform launch",
+      thumbnail: "/placeholder.svg?height=200&width=300",
+      duration: "1:30",
+      createdAt: "2024-01-15",
+      status: "completed",
+      views: 2340,
+      style: "Modern",
     },
-    onError: (error) => {
-      console.error('Test mutation error:', error);
-      toast.error('Test mutation failed');
+    {
+      id: "2",
+      title: "Product Demo Showcase",
+      description: "Engaging product demonstration video",
+      thumbnail: "/placeholder.svg?height=200&width=300",
+      duration: "0:45",
+      createdAt: "2024-01-12",
+      status: "completed",
+      views: 1850,
+      style: "Cinematic",
     },
-  });
+    {
+      id: "3",
+      title: "Brand Story Trailer",
+      description: "Emotional brand storytelling piece",
+      thumbnail: "/placeholder.svg?height=200&width=300",
+      duration: "2:00",
+      createdAt: "2024-01-10",
+      status: "processing",
+      views: 0,
+      style: "Minimal",
+    },
+    {
+      id: "4",
+      title: "Event Promotion",
+      description: "High-energy event promotional trailer",
+      thumbnail: "/placeholder.svg?height=200&width=300",
+      duration: "1:15",
+      createdAt: "2024-01-08",
+      status: "completed",
+      views: 3200,
+      style: "Energetic",
+    },
+  ]
 
-  // Removed createProject logic - now handled in dedicated page
+  const stats = [
+    { label: "Total Projects", value: "12", icon: <Video className="w-5 h-5" />, change: "+3 this month" },
+    { label: "Total Views", value: "24.5K", icon: <Eye className="w-5 h-5" />, change: "+12% this week" },
+    {
+      label: "Avg. Engagement",
+      value: "8.2%",
+      icon: <TrendingUp className="w-5 h-5" />,
+      change: "+2.1% vs last month",
+    },
+    { label: "Credits Used", value: "45/100", icon: <Zap className="w-5 h-5" />, change: "55 remaining" },
+  ]
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p>Loading...</p>
-        </div>
-      </div>
-    );
+  const getStatusBadge = (status: Project["status"]) => {
+    switch (status) {
+      case "completed":
+        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Completed</Badge>
+      case "processing":
+        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Processing</Badge>
+      case "draft":
+        return <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30">Draft</Badge>
+    }
   }
 
-  return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-gray-600">Welcome, {user?.email || 'Test User'}</p>
-            {testData && (
-              <div className="text-sm text-gray-500 mt-2">
-                <p>Test: {testData.message}</p>
-                <p>Supabase: {testData.supabase ? 'Connected' : 'Not connected'}</p>
-                <p>Env vars: {testData.envVars?.hasUrl && testData.envVars?.hasKey ? 'Set' : 'Missing'}</p>
-              </div>
-            )}
-          </div>
-                      <div className="flex space-x-2">
-              <Button 
-                onClick={() => testMutation.mutate({ message: 'Hello from test!' })}
-                className="bg-green-500 hover:bg-green-700 text-white px-4 py-2"
-              >
-                Test Mutation
-              </Button>
-              <Button 
-                asChild
-                className="bg-blue-500 hover:bg-blue-700 text-white px-6 py-2"
-              >
-                <a href="/create-project">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create New Project
-                </a>
-              </Button>
-            </div>
-        </div>
+  const filteredProjects = projects.filter((project) => {
+    const matchesSearch =
+      project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.description.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesFilter = filterStatus === "all" || project.status === filterStatus
+    return matchesSearch && matchesFilter
+  })
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Projects</p>
-                  <p className="text-2xl font-bold">{projects.length}</p>
+  return (
+    <div className="min-h-screen bg-background-primary text-text-primary">
+      {/* Header */}
+      <header className="border-b border-background-secondary/50 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-4">
+          <nav className="flex items-center justify-between">
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+                <Video className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-heading font-bold">TrailerAI</span>
+            </Link>
+
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 text-sm text-text-secondary">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span>55 credits remaining</span>
+              </div>
+              <Button variant="outline" size="sm">
+                Upgrade Plan
+              </Button>
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
+                <Users className="w-4 h-4 text-white" />
+              </div>
+            </div>
+          </nav>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-8">
+        {/* Welcome Section */}
+        <AnimatedSection>
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-heading font-bold mb-2">Welcome back, Alex!</h1>
+            <p className="text-text-secondary text-lg">Ready to create your next amazing trailer?</p>
+          </div>
+        </AnimatedSection>
+
+        {/* Stats Cards */}
+        <AnimatedSection delay={0.1}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {stats.map((stat, index) => (
+              <Card key={index} className="bg-background-secondary/50 border-background-tertiary">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-text-muted">{stat.icon}</div>
+                    <div className="text-2xl font-heading font-bold text-primary">{stat.value}</div>
+                  </div>
+                  <div className="text-sm font-medium mb-1">{stat.label}</div>
+                  <div className="text-xs text-text-muted">{stat.change}</div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </AnimatedSection>
+
+        {/* Quick Actions */}
+        <AnimatedSection delay={0.2}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+            <div>
+              <h2 className="text-2xl font-heading font-bold mb-2">Your Projects</h2>
+              <p className="text-text-secondary">Manage and track all your AI-generated trailers</p>
+            </div>
+            <Link href="/generate">
+              <Button className="bg-primary hover:bg-primary/90 text-background-primary font-medium shadow-glow">
+                <Plus className="w-4 h-4 mr-2" />
+                Create New Trailer
+              </Button>
+            </Link>
+          </div>
+        </AnimatedSection>
+
+        {/* Search and Filter */}
+        <AnimatedSection delay={0.3}>
+          <div className="flex flex-col sm:flex-row gap-4 mb-8">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-muted" />
+              <Input
+                placeholder="Search projects..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-background-secondary border-background-tertiary focus:border-primary"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Filter className="w-4 h-4 text-text-muted" />
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-3 py-2 bg-background-secondary border border-background-tertiary rounded-md focus:border-primary focus:outline-none"
+              >
+                <option value="all">All Status</option>
+                <option value="completed">Completed</option>
+                <option value="processing">Processing</option>
+                <option value="draft">Draft</option>
+              </select>
+            </div>
+          </div>
+        </AnimatedSection>
+
+        {/* Projects Grid */}
+        <AnimatedSection delay={0.4}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProjects.map((project, index) => (
+              <motion.div
+                key={project.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                <Card className="bg-background-secondary/50 border-background-tertiary hover:border-primary/30 transition-all duration-300 group">
+                  <div className="relative overflow-hidden">
+                    <Image
+                      src={project.thumbnail || "/placeholder.svg"}
+                      alt={project.title}
+                      width={300}
+                      height={200}
+                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <div className="flex items-center space-x-2">
+                        <Button size="sm" className="bg-primary hover:bg-primary/90">
+                          <Play className="w-4 h-4 mr-1" />
+                          Play
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-black/50 border-white/20 text-white hover:bg-black/70"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="absolute top-3 left-3">{getStatusBadge(project.status)}</div>
+                    <div className="absolute top-3 right-3">
+                      <Badge className="bg-black/50 text-white border-white/20">{project.duration}</Badge>
+                    </div>
+                  </div>
+
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-heading font-semibold text-lg truncate">{project.title}</h3>
+                      <Button variant="ghost" size="sm" className="p-1 h-auto">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    <p className="text-text-secondary text-sm mb-3 line-clamp-2">{project.description}</p>
+
+                    <div className="flex items-center justify-between text-xs text-text-muted mb-3">
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>{new Date(project.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Eye className="w-3 h-3" />
+                        <span>{project.views.toLocaleString()} views</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline" className="text-xs">
+                        {project.style}
+                      </Badge>
+                      <div className="flex items-center space-x-1">
+                        <Button size="sm" variant="ghost" className="p-1 h-auto">
+                          <Download className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="p-1 h-auto">
+                          <Share2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </AnimatedSection>
+
+        {/* Empty State */}
+        {filteredProjects.length === 0 && (
+          <AnimatedSection delay={0.5}>
+            <div className="text-center py-16">
+              <Video className="w-16 h-16 text-text-muted mx-auto mb-4" />
+              <h3 className="text-xl font-heading font-semibold mb-2">No projects found</h3>
+              <p className="text-text-secondary mb-6">
+                {searchQuery || filterStatus !== "all"
+                  ? "Try adjusting your search or filter criteria"
+                  : "Create your first AI-powered trailer to get started"}
+              </p>
+              {!searchQuery && filterStatus === "all" && (
+                <Link href="/generate">
+                  <Button className="bg-primary hover:bg-primary/90 text-background-primary font-medium">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Your First Trailer
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </AnimatedSection>
+        )}
+
+        {/* Recent Activity */}
+        <AnimatedSection delay={0.6}>
+          <Card className="bg-background-secondary/50 border-background-tertiary mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Clock className="w-5 h-5 mr-2 text-primary" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3 text-sm">
+                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                  <span className="text-text-secondary">Tech Startup Launch trailer completed</span>
+                  <span className="text-text-muted">2 hours ago</span>
+                </div>
+                <div className="flex items-center space-x-3 text-sm">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                  <span className="text-text-secondary">Started processing Brand Story Trailer</span>
+                  <span className="text-text-muted">1 day ago</span>
+                </div>
+                <div className="flex items-center space-x-3 text-sm">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                  <span className="text-text-secondary">Product Demo Showcase gained 150 new views</span>
+                  <span className="text-text-muted">2 days ago</span>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>🚀 Quick Actions</CardTitle>
-            <p className="text-sm text-gray-600">Generate videos quickly from text descriptions</p>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
-              <Link href="/create-project">
-                <Plus className="w-4 h-4 mr-2" />
-                Create New Video
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
-            <Card key={project.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle className="text-lg">{project.title}</CardTitle>
-                <p className="text-sm text-gray-600">{project.description}</p>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between items-center">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    project.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    project.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {project.status}
-                  </span>
-                  <div className="flex space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      asChild
-                    >
-                      <a href={`/projects/${project.id}`}>
-                        <Eye className="w-4 h-4" />
-                      </a>
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {projects.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 mb-4">No projects yet. Create your first project to get started!</p>
-          </div>
-        )}
+        </AnimatedSection>
       </div>
-
-      {/* Modal removed - now using dedicated /create-project page */}
     </div>
-  );
-} 
+  )
+}
