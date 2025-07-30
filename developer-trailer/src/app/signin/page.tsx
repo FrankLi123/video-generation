@@ -69,13 +69,15 @@ export default function SignInPage() {
 
             <div className="flex items-center space-x-4">
               <span className="text-text-secondary text-sm">Don't have an account?</span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-primary/30 text-primary hover:bg-primary/10 bg-transparent"
-              >
-                Sign Up
-              </Button>
+              <Link href="/signup">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-primary/30 text-primary hover:bg-primary/10 bg-transparent"
+                >
+                  Sign Up
+                </Button>
+              </Link>
             </div>
           </nav>
         </div>

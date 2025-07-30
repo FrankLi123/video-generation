@@ -12,9 +12,20 @@ export async function GET(request: NextRequest) {
   console.log('Auth code:', code ? 'present' : 'missing');
   console.log('Auth error:', error);
 
+  // Helper function to get the correct base URL
+  const getBaseUrl = () => {
+    if (process.env.NODE_ENV === 'production') {
+      return process.env.NEXT_PUBLIC_SITE_URL || requestUrl.origin;
+    }
+    // For development, use the ngrok URL from env or fallback to localhost
+    return process.env.NEXT_PUBLIC_DEV_URL || 'http://localhost:3000';
+  };
+
+  const baseUrl = getBaseUrl();
+
   if (error) {
     console.error('OAuth error from provider:', error);
-    return NextResponse.redirect(`${requestUrl.origin}/signin?error=${error}`);
+    return NextResponse.redirect(`${baseUrl}/signin?error=${error}`);
   }
 
   if (code) {
@@ -54,50 +65,48 @@ export async function GET(request: NextRequest) {
           .single();
         
         if (checkError && checkError.code === 'PGRST116') {
-          // User doesn't exist, create new user record
-          console.log('Creating new user record in public.users');
+          // User doesn't exist in database - create them since they successfully authenticated
+          console.log('User not found in database, creating user record');
           
           const { error: insertError } = await supabase
             .from('users')
             .insert({
               id: user.id,
               email: user.email!,
-              name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+              name: user.user_metadata?.name || user.user_metadata?.full_name || null,
               avatar_url: user.user_metadata?.avatar_url || null,
               plan: 'free',
-              credits: 1,
-              email_verified: user.email_confirmed_at ? new Date(user.email_confirmed_at) : null
+              credits: 10,
             });
           
           if (insertError) {
             console.error('Error creating user record:', insertError);
-          } else {
-            console.log('User record created successfully');
+            await supabase.auth.signOut();
+            return NextResponse.redirect(`${baseUrl}/signin?error=user_creation_failed`);
           }
+          
+          console.log('User record created successfully');
+          return NextResponse.redirect(`${baseUrl}/dashboard`);
         } else if (!checkError) {
-          console.log('User record already exists');
+          console.log('User record exists, allowing login');
+          
+          // User exists, proceed to dashboard
+          return NextResponse.redirect(`${baseUrl}/dashboard`);
         } else {
           console.error('Error checking user existence:', checkError);
+          await supabase.auth.signOut();
+          return NextResponse.redirect(`${baseUrl}/signin?error=database_error`);
         }
       } else {
         console.error('Error getting user:', userError);
+        return NextResponse.redirect(`${baseUrl}/signin?error=user_fetch_failed`);
       }
-      
-      console.log('Auth callback successful, redirecting to dashboard');
-      // Fix: Use ngrok URL instead of localhost
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? process.env.NEXT_PUBLIC_SITE_URL 
-        : 'https://a3735310e07c.ngrok-free.app';
-      return NextResponse.redirect(`${baseUrl}/dashboard`);
     } else {
-      console.error('Auth error during session exchange:', authError);
-      return NextResponse.redirect(`${requestUrl.origin}/signin?error=auth_failed`);
+      console.error('Error exchanging code for session:', authError);
+      return NextResponse.redirect(`${baseUrl}/signin?error=auth_failed`);
     }
-  } else {
-    console.error('No auth code received in callback');
-    return NextResponse.redirect(`${requestUrl.origin}/signin?error=no_code`);
   }
 
-  // Fallback redirect
-  return NextResponse.redirect(`${requestUrl.origin}/signin?error=unknown`);
+  // No code parameter, redirect to signin
+  return NextResponse.redirect(`${baseUrl}/signin`);
 }
