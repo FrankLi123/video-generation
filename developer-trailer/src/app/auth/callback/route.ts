@@ -36,20 +36,68 @@ export async function GET(request: NextRequest) {
       }
     );
     
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
+    const { error: authError } = await supabase.auth.exchangeCodeForSession(code);
+    if (!authError) {
+      console.log('Auth session created successfully');
+      
+      // Get the authenticated user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (user && !userError) {
+        console.log('User authenticated:', user.email);
+        
+        // Check if user exists in public.users table
+        const { data: existingUser, error: checkError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', user.id)
+          .single();
+        
+        if (checkError && checkError.code === 'PGRST116') {
+          // User doesn't exist, create new user record
+          console.log('Creating new user record in public.users');
+          
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert({
+              id: user.id,
+              email: user.email!,
+              name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+              avatar_url: user.user_metadata?.avatar_url || null,
+              plan: 'free',
+              credits: 1,
+              email_verified: user.email_confirmed_at ? new Date(user.email_confirmed_at) : null
+            });
+          
+          if (insertError) {
+            console.error('Error creating user record:', insertError);
+          } else {
+            console.log('User record created successfully');
+          }
+        } else if (!checkError) {
+          console.log('User record already exists');
+        } else {
+          console.error('Error checking user existence:', checkError);
+        }
+      } else {
+        console.error('Error getting user:', userError);
+      }
+      
       console.log('Auth callback successful, redirecting to dashboard');
       // Fix: Use ngrok URL instead of localhost
       const baseUrl = process.env.NODE_ENV === 'production' 
         ? process.env.NEXT_PUBLIC_SITE_URL 
         : 'https://a3735310e07c.ngrok-free.app';
       return NextResponse.redirect(`${baseUrl}/dashboard`);
+    } else {
+      console.error('Auth error during session exchange:', authError);
+      return NextResponse.redirect(`${requestUrl.origin}/signin?error=auth_failed`);
     }
   } else {
     console.error('No auth code received in callback');
     return NextResponse.redirect(`${requestUrl.origin}/signin?error=no_code`);
   }
 
-  // Redirect to dashboard after successful authentication
-  return NextResponse.redirect(`${requestUrl.origin}/dashboard`);
+  // Fallback redirect
+  return NextResponse.redirect(`${requestUrl.origin}/signin?error=unknown`);
 }
