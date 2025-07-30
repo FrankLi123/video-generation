@@ -9,6 +9,15 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { AnimatedSection } from "@/components/animated-section"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/lib/auth/auth-context"
 import { motion } from "framer-motion"
 import {
   Upload,
@@ -23,6 +32,11 @@ import {
   Clock,
   Target,
   Wand2,
+  Users,
+  LogOut,
+  Settings,
+  User,
+  CreditCard,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -35,6 +49,7 @@ interface Asset {
 }
 
 export default function GeneratePage() {
+  const { user, signOut } = useAuth()
   const [projectName, setProjectName] = useState("")
   const [description, setDescription] = useState("")
   const [assets, setAssets] = useState<Asset[]>([])
@@ -94,6 +109,14 @@ export default function GeneratePage() {
     { id: "minimal", name: "Minimal", description: "Simple, elegant approach focusing on content" },
   ]
 
+  const handleLogout = async () => {
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background-primary text-text-primary">
       {/* Header */}
@@ -113,9 +136,59 @@ export default function GeneratePage() {
                 <Sparkles className="w-4 h-4 text-primary" />
                 <span>10 credits remaining</span>
               </div>
-              <Button variant="outline" size="sm">
-                Upgrade
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/pricing">Upgrade</Link>
               </Button>
+              
+              {/* User Dropdown Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
+                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity">
+                      <Users className="w-4 h-4 text-white" />
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user?.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard" className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Dashboard</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings" className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/pricing" className="cursor-pointer">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      <span>Billing</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </nav>
         </div>
