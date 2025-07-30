@@ -29,7 +29,12 @@ html {
         `}</style>
       </head>
       <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans`}>
-        {children}
+        <AuthProvider>
+          <TRPCProvider>
+            {children}
+            <Toaster />
+          </TRPCProvider>
+        </AuthProvider>
       </body>
     </html>
   );

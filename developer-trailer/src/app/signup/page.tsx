@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { AnimatedSection } from "@/components/animated-section"
 import { Video, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, Building, Check, X, Shield, Zap } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/lib/auth/auth-context"
 
 interface PasswordRequirement {
   text: string
@@ -33,6 +34,8 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
+  const [error, setError] = useState("")
+  const { signUp, signInWithGoogle } = useAuth()
 
   // Password validation
   const passwordRequirements: PasswordRequirement[] = [
@@ -66,17 +69,34 @@ export default function SignUpPage() {
     if (!isFormValid) return
 
     setIsLoading(true)
+    setError("")
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    // Redirect to welcome/onboarding
-    window.location.href = "/welcome"
+    try {
+      const { error } = await signUp(formData.email, formData.password)
+      if (error) {
+        setError(error.message)
+      }
+    } catch (err) {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleSocialSignup = (provider: string) => {
-    console.log(`Signing up with ${provider}`)
-    // Implement social signup logic
+  const handleGoogleSignup = async () => {
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const { error } = await signInWithGoogle()
+      if (error) {
+        setError(error.message)
+      }
+    } catch (err) {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -211,6 +231,11 @@ export default function SignUpPage() {
                     <p className="text-center text-text-secondary">Start your AI trailer journey today</p>
                   </CardHeader>
                   <CardContent>
+                    {error && (
+                      <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">
+                        {error}
+                      </div>
+                    )}
                     <form onSubmit={handleSubmit} className="space-y-6">
                       {/* Personal Information */}
                       <div className="space-y-4">
@@ -418,12 +443,13 @@ export default function SignUpPage() {
                         </div>
                       </div>
 
-                      <div className="mt-4 grid grid-cols-2 gap-3">
+                      <div className="mt-4">
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={() => handleSocialSignup("google")}
-                          className="bg-transparent border-background-tertiary hover:border-primary/50"
+                          onClick={handleGoogleSignup}
+                          disabled={isLoading}
+                          className="w-full bg-transparent border-background-tertiary hover:border-primary/50"
                         >
                           <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                             <path
@@ -443,18 +469,7 @@ export default function SignUpPage() {
                               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                             />
                           </svg>
-                          Google
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => handleSocialSignup("facebook")}
-                          className="bg-transparent border-background-tertiary hover:border-primary/50"
-                        >
-                          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                          </svg>
-                          Facebook
+                          Continue with Google
                         </Button>
                       </div>
                     </div>

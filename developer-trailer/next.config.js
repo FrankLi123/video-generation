@@ -13,6 +13,13 @@ const nextConfig = {
       'via.placeholder.com', // <-- add this line
     ],
   },
+  // Allow ngrok and other development origins
+  allowedDevOrigins: [
+    '*.ngrok-free.app',
+    '*.ngrok.io',
+    '*.ngrok.app',
+  ],
 };
 
-module.exports = nextConfig; 
+
+module.exports = nextConfig;
