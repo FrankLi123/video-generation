@@ -6,7 +6,7 @@ import { createHmac, timingSafeEqual } from 'crypto'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text()
-    const headersList = headers()
+    const headersList = await headers() // Add await here
     const signature = headersList.get('paddle-signature')
 
     if (!signature) {
