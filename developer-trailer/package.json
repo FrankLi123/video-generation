@@ -18,6 +18,8 @@
     "@fal-ai/client": "^1.0.0",
     "@hookform/resolvers": "^5.1.1",
     "@monaco-editor/react": "^4.7.0",
+    "@paddle/paddle-js": "^1.4.2",
+    "@paddle/paddle-node-sdk": "^3.2.0",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-dropdown-menu": "^2.1.15",
