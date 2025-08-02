@@ -194,7 +194,7 @@ export function useVideoGeneration() {
       // Step 3: Generate video
       console.log('🎬 Generating video...');
       const videoResult = await generateVideoMutation.mutateAsync({
-        prompt: `Create a professional developer trailer video: ${formData.description}`,
+        prompt: scriptResult.script,
         aspectRatio: '16:9',
         resolution: '1080p',
         duration: '5',
