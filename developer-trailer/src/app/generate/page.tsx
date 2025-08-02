@@ -76,20 +76,19 @@ export default function GeneratePage() {
 
   // UPDATED: Simplified handler with auto-generated project name
   const handleGenerateTrailer = async () => {
-    if (!description.trim()) {
-      toast.error('Please provide a content description')
-      return
-    }
+     if (!description.trim()) {
+    toast.error('Please provide a content description')
+    return
+  }
 
-    // Auto-generate project name from description
-    const autoProjectName = description.slice(0, 50).trim() + (description.length > 50 ? '...' : '')
-    
-    await generateTrailer({
-      projectName: autoProjectName,
-      description: description.trim(),
-      duration,
-      trailerStyle
-    })
+  // Auto-generate project name from description
+  const autoProjectName = description.slice(0, 50).trim() + (description.length > 50 ? '...' : '')
+  
+  await generateTrailer({
+    title: autoProjectName,  // ✅ Changed from 'projectName' to 'title'
+    description: description.trim(),
+    // duration and trailerStyle are not used by the hook, so we can remove them
+  })
   }
 
   // Asset management functions (simplified)

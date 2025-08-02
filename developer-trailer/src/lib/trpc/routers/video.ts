@@ -100,4 +100,112 @@ export const videoRouter = createTRPCRouter({
         };
       }
     }),
+
+  // ADD THIS: Update project with completed video
+  updateProjectVideo: publicProcedure
+    .input(z.object({
+      projectId: z.string(),
+      videoUrl: z.string(),
+      status: z.enum(['completed', 'failed']),
+      jobId: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      console.log('🎬 UPDATING PROJECT VIDEO:', input);
+
+      try {
+        const { data: project, error } = await ctx.supabase
+          .from('projects')
+          .update({
+            video_url: input.videoUrl,
+            video_status: input.status,
+            video_job_id: input.jobId,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', input.projectId)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('❌ PROJECT UPDATE ERROR:', error);
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `Failed to update project: ${error.message}`,
+          });
+        }
+
+        console.log('✅ PROJECT UPDATED:', project);
+        return project;
+
+      } catch (error) {
+        console.error('❌ UPDATE PROJECT VIDEO ERROR:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to update project video: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
+      }
+    }),
+
+  // ADD THIS: Get project video progress
+  getProjectProgress: publicProcedure
+    .input(z.object({
+      projectId: z.string(),
+    }))
+    .query(async ({ ctx, input }) => {
+      try {
+        const { data: project, error } = await ctx.supabase
+          .from('projects')
+          .select('id, title, video_status, video_url, video_job_id, updated_at')
+          .eq('id', input.projectId)
+          .single();
+
+        if (error) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Project not found: ${error.message}`,
+          });
+        }
+
+        return {
+          projectId: project.id,
+          title: project.title,
+          status: project.video_status || 'pending',
+          videoUrl: project.video_url,
+          jobId: project.video_job_id,
+          lastUpdated: project.updated_at,
+        };
+
+      } catch (error) {
+        console.error('❌ GET PROJECT PROGRESS ERROR:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to get project progress: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
+      }
+    }),
+
+  // ADD THIS: Get project video segments
+  getProjectSegments: publicProcedure
+    .input(z.object({
+      projectId: z.string(),
+    }))
+    .query(async ({ ctx, input }) => {
+      try {
+        const { data: segments, error } = await ctx.supabase
+          .from('video_segments')
+          .select('*')
+          .eq('project_id', input.projectId)
+          .order('segment_order');
+
+        if (error) {
+          console.error('❌ GET SEGMENTS ERROR:', error);
+          return [];
+        }
+
+        return segments || [];
+
+      } catch (error) {
+        console.error('❌ GET PROJECT SEGMENTS ERROR:', error);
+        return [];
+      }
+    }),
 });
