@@ -14,6 +14,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+// Fixed Dialog imports
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useAuth } from "@/lib/auth/auth-context"
 import { motion } from "framer-motion"
 import {
@@ -59,24 +66,15 @@ interface Project {
 export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
-  const [playingVideo, setPlayingVideo] = useState<string | null>(null)
+  // Add modal state
+  const [videoModalOpen, setVideoModalOpen] = useState(false)
+  const [currentVideo, setCurrentVideo] = useState<{url: string, title: string} | null>(null)
 
   // Fetch real projects from database
-  const { data: projects = [], isLoading, error } = api.project.getProjects.useQuery()
-
-  // REMOVE THE DUPLICATE HARDCODED STATS ARRAY (lines 67-76)
-  // Delete this entire block:
-  // const stats = [
-  //   { label: "Total Projects", value: "12", icon: <Video className="w-5 h-5" />, change: "+3 this month" },
-  //   { label: "Total Views", value: "24.5K", icon: <Eye className="w-5 h-5" />, change: "+12% this week" },
-  //   {
-  //     label: "Avg. Engagement",
-  //     value: "8.2%",
-  //     icon: <TrendingUp className="w-5 h-5" />,
-  //     change: "+2.1% vs last month",
-  //   },
-  //   { label: "Credits Used", value: "45/100", icon: <Zap className="w-5 h-5" />, change: "55 remaining" },
-  // ]
+  const { data: projects, isLoading, error } = api.project.getProjects.useQuery(undefined, {
+    refetchInterval: 5000, // Refresh every 5 seconds
+    refetchOnWindowFocus: true, // Refresh when window gains focus
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -91,11 +89,11 @@ export default function DashboardPage() {
     }
   }
 
-  const handlePlayVideo = (videoUrl: string, projectId: string) => {
+  // Updated handlePlayVideo function for modal
+  const handlePlayVideo = (videoUrl: string, projectTitle: string) => {
     if (videoUrl) {
-      setPlayingVideo(projectId)
-      // Open video in new tab or modal
-      window.open(videoUrl, '_blank')
+      setCurrentVideo({ url: videoUrl, title: projectTitle })
+      setVideoModalOpen(true)
     } else {
       toast.error('Video not available')
     }
@@ -153,7 +151,7 @@ export default function DashboardPage() {
     }
   }
 
-  const filteredProjects = projects.filter((project) => {
+  const filteredProjects = projects?.filter((project) => {
     const matchesSearch =
       project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.description.toLowerCase().includes(searchQuery.toLowerCase())
@@ -162,13 +160,13 @@ export default function DashboardPage() {
   })
 
   // KEEP ONLY THIS CALCULATED STATS ARRAY
-  const completedProjects = projects.filter(p => p.video_status === 'completed')
+  const completedProjects = projects?.filter(p => p.video_status === 'completed')
   const stats = [
     { 
       label: "Total Projects", 
-      value: projects.length.toString(), 
+      value: projects?.length.toString(), 
       icon: <Video className="w-5 h-5" />, 
-      change: "+" + projects.filter(p => {
+      change: "+" + projects?.filter(p => {
         const createdDate = new Date(p.created_at)
         const monthAgo = new Date()
         monthAgo.setMonth(monthAgo.getMonth() - 1)
@@ -177,13 +175,13 @@ export default function DashboardPage() {
     },
     { 
       label: "Completed Videos", 
-      value: completedProjects.length.toString(), 
+      value: completedProjects?.length.toString(), 
       icon: <Eye className="w-5 h-5" />, 
-      change: completedProjects.length > 0 ? "Ready to share" : "None yet" 
+      change: completedProjects?.length > 0 ? "Ready to share" : "None yet" 
     },
     {
       label: "Success Rate",
-      value: projects.length > 0 ? Math.round((completedProjects.length / projects.length) * 100) + "%" : "0%",
+      value: projects?.length > 0 ? Math.round((completedProjects?.length / projects?.length) * 100) + "%" : "0%",  
       icon: <TrendingUp className="w-5 h-5" />,
       change: "Generation success",
     },
@@ -200,103 +198,98 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     try {
       await signOut()
+      toast.success('Logged out successfully')
     } catch (error) {
-      console.error('Error signing out:', error)
+      toast.error('Failed to log out')
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background-primary flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p>Loading projects...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background-primary flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">Failed to load projects</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-background-primary text-text-primary">
+    <div className="min-h-screen bg-background-primary">
       {/* Header */}
-      <header className="border-b border-background-secondary/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <nav className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                <Video className="w-5 h-5 text-white" />
+      <header className="bg-background-secondary/50 border-b border-background-tertiary">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-heading font-bold">TrailerAI</span>
               </div>
-              <span className="text-xl font-heading font-bold">TrailerAI</span>
-            </Link>
+            </div>
 
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-text-secondary">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <span>55 credits remaining</span>
-              </div>
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/pricing">Upgrade Plan</Link>
-              </Button>
-              
-              {/* User Dropdown Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity">
-                      <Users className="w-4 h-4 text-white" />
+                  <Button variant="ghost" className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
                     </div>
+                    <span className="hidden sm:block">{user?.email || 'User'}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'}
-                      </p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user?.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard" className="cursor-pointer">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Dashboard</span>
-                    </Link>
+                  <DropdownMenuItem>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings" className="cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/pricing" className="cursor-pointer">
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      <span>Billing</span>
-                    </Link>
+                  <DropdownMenuItem>
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Billing
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="cursor-pointer text-red-600 focus:text-red-600"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Log out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </nav>
+          </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <AnimatedSection>
           <div className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-heading font-bold mb-2">Welcome back, {user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'}!</h1>
-            <p className="text-text-secondary text-lg">Ready to create your next amazing trailer?</p>
+            <h1 className="text-3xl font-heading font-bold mb-2">Welcome back!</h1>
+            <p className="text-text-secondary">Here's what's happening with your AI-generated trailers today.</p>
           </div>
         </AnimatedSection>
 
-        {/* Stats Cards */}
+        {/* Stats Grid */}
         <AnimatedSection delay={0.1}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {stats.map((stat, index) => (
               <Card key={index} className="bg-background-secondary/50 border-background-tertiary">
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-4">
                     <div className="text-text-muted">{stat.icon}</div>
                     <div className="text-2xl font-heading font-bold text-primary">{stat.value}</div>
                   </div>
@@ -355,7 +348,7 @@ export default function DashboardPage() {
         {/* Projects Grid */}
         <AnimatedSection delay={0.4}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProjects.map((project, index) => (
+            {filteredProjects?.map((project, index) => (
               <motion.div
                 key={project.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -365,19 +358,42 @@ export default function DashboardPage() {
                 <Card className="bg-background-secondary/50 border-background-tertiary hover:border-primary/30 transition-all duration-300 group">
                   <div className="relative overflow-hidden">
                     {/* Video thumbnail or placeholder */}
-                    <div className="w-full h-48 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                    <div className="w-full h-48 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center relative overflow-hidden">
                       {project.video_url ? (
-                        <video 
-                          className="w-full h-full object-cover"
-                          poster={project.video_url}
-                          preload="metadata"
-                        >
-                          <source src={project.video_url} type="video/mp4" />
-                        </video>
+                        <>
+                          {/* Video thumbnail */}
+                          <video 
+                            className="w-full h-full object-cover"
+                            preload="metadata"
+                            muted
+                            onLoadedMetadata={(e) => {
+                              // Set video to first frame for thumbnail
+                              e.currentTarget.currentTime = 1;
+                            }}
+                          >
+                            <source src={`${project.video_url}#t=1`} type="video/mp4" />
+                          </video>
+                          
+                          {/* Play button overlay */}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
+                              <Play className="w-8 h-8 text-gray-800 ml-1" />
+                            </div>
+                          </div>
+                        </>
                       ) : (
                         <div className="text-center">
-                          <Video className="w-12 h-12 text-text-muted mx-auto mb-2" />
-                          <p className="text-sm text-text-muted">Video generating...</p>
+                          {project.video_status === 'processing' ? (
+                            <>
+                              <Loader2 className="w-12 h-12 text-primary mx-auto mb-2 animate-spin" />
+                              <p className="text-sm text-text-muted">Generating video...</p>
+                            </>
+                          ) : (
+                            <>
+                              <Video className="w-12 h-12 text-text-muted mx-auto mb-2" />
+                              <p className="text-sm text-text-muted">Video pending...</p>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
@@ -390,7 +406,7 @@ export default function DashboardPage() {
                             <Button 
                               size="sm" 
                               className="bg-primary hover:bg-primary/90"
-                              onClick={() => handlePlayVideo(project.video_url!, project.id)}
+                              onClick={() => handlePlayVideo(project.video_url!, project.title)}
                             >
                               <Play className="w-4 h-4 mr-1" />
                               Play
@@ -514,70 +530,47 @@ export default function DashboardPage() {
         </AnimatedSection>
 
         {/* Empty State */}
-        {filteredProjects.length === 0 && (
+        {filteredProjects?.length === 0 && (
           <AnimatedSection delay={0.5}>
-            <div className="text-center py-16">
+            <div className="text-center py-12">
               <Video className="w-16 h-16 text-text-muted mx-auto mb-4" />
               <h3 className="text-xl font-heading font-semibold mb-2">No projects found</h3>
               <p className="text-text-secondary mb-6">
-                {searchQuery || filterStatus !== "all"
-                  ? "Try adjusting your search or filter criteria"
-                  : "Create your first AI-powered trailer to get started"}
+                {searchQuery || filterStatus !== "all" 
+                  ? "Try adjusting your search or filter criteria." 
+                  : "Get started by creating your first AI-generated trailer."}
               </p>
-              {!searchQuery && filterStatus === "all" && (
-                <Link href="/generate">
-                  <Button className="bg-primary hover:bg-primary/90 text-background-primary font-medium">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Your First Trailer
-                  </Button>
-                </Link>
-              )}
+              <Link href="/generate">
+                <Button className="bg-primary hover:bg-primary/90">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Your First Trailer
+                </Button>
+              </Link>
             </div>
           </AnimatedSection>
         )}
+      </main>
 
-        {/* Recent Activity - Updated to show real project activity */}
-        <AnimatedSection delay={0.6}>
-          <Card className="bg-background-secondary/50 border-background-tertiary mt-8">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Clock className="w-5 h-5 mr-2 text-primary" />
-                Recent Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {projects.slice(0, 3).map((project, index) => {
-                  const isCompleted = project.video_status === 'completed'
-                  const isProcessing = project.video_status === 'processing'
-                  return (
-                    <div key={project.id} className="flex items-center space-x-3 text-sm">
-                      <div className={`w-2 h-2 rounded-full ${
-                        isCompleted ? 'bg-green-400' : 
-                        isProcessing ? 'bg-yellow-400' : 
-                        'bg-blue-400'
-                      }`}></div>
-                      <span className="text-text-secondary">
-                        {isCompleted ? `${project.title} trailer completed` :
-                         isProcessing ? `Processing ${project.title}` :
-                         `Started ${project.title} project`}
-                      </span>
-                      <span className="text-text-muted">
-                        {new Date(project.updated_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  )
-                })}
-                {projects.length === 0 && (
-                  <div className="text-center text-text-muted py-4">
-                    No recent activity. Create your first project to get started!
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </AnimatedSection>
-      </div>
+      {/* Video Modal */}
+      <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
+        <DialogContent className="max-w-4xl w-full">
+          <DialogHeader>
+            <DialogTitle>{currentVideo?.title}</DialogTitle>
+          </DialogHeader>
+          {currentVideo && (
+            <div className="aspect-video">
+              <video 
+                controls 
+                autoPlay
+                className="w-full h-full rounded-lg"
+                src={currentVideo.url}
+              >
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -76,7 +76,7 @@ export default function GeneratePage() {
 
   // UPDATED: Simplified handler with auto-generated project name
   const handleGenerateTrailer = async () => {
-     if (!description.trim()) {
+  if (!description.trim()) {
     toast.error('Please provide a content description')
     return
   }
@@ -87,7 +87,6 @@ export default function GeneratePage() {
   await generateTrailer({
     title: autoProjectName,  // ✅ Changed from 'projectName' to 'title'
     description: description.trim(),
-    // duration and trailerStyle are not used by the hook, so we can remove them
   })
   }
 

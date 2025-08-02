@@ -111,12 +111,25 @@ export const videoRouter = createTRPCRouter({
     }))
     .mutation(async ({ ctx, input }) => {
       console.log('🎬 UPDATING PROJECT VIDEO:', input);
-
+  
       try {
+        // Clean and validate the video URL
+        const cleanVideoUrl = input.videoUrl
+          .replace(/[`'"]/g, '') // Remove backticks and quotes
+          .trim();
+  
+        // Validate URL format if not empty
+        if (cleanVideoUrl && !cleanVideoUrl.startsWith('http')) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Invalid video URL format',
+          });
+        }
+  
         const { data: project, error } = await ctx.supabase
           .from('projects')
           .update({
-            video_url: input.videoUrl,
+            video_url: cleanVideoUrl,
             video_status: input.status,
             video_job_id: input.jobId,
             updated_at: new Date().toISOString(),
@@ -124,7 +137,7 @@ export const videoRouter = createTRPCRouter({
           .eq('id', input.projectId)
           .select()
           .single();
-
+  
         if (error) {
           console.error('❌ PROJECT UPDATE ERROR:', error);
           throw new TRPCError({
@@ -132,12 +145,22 @@ export const videoRouter = createTRPCRouter({
             message: `Failed to update project: ${error.message}`,
           });
         }
-
+  
         console.log('✅ PROJECT UPDATED:', project);
-        return project;
-
+        
+        // Ensure we return a properly serializable object
+        return {
+          ...project,
+          video_url: cleanVideoUrl,
+        };
+  
       } catch (error) {
         console.error('❌ UPDATE PROJECT VIDEO ERROR:', error);
+        
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: `Failed to update project video: ${error instanceof Error ? error.message : 'Unknown error'}`,
