@@ -234,11 +234,7 @@ Requirements:
 - Make it suitable for AI video generation (like Seedance)
 - Keep it under 100 characters
 - Be specific about what viewers will see
-- Avoid complex scenes, focus on simple but engaging visuals
-
-Example: "A sleek mobile app interface glowing on a smartphone screen in a modern coffee shop"
-
-Generate only the video script prompt (no quotes, just the prompt):`;
+- Avoid complex scenes, focus on simple but engaging visuals`;
 
     console.log('📤 Sending request to OpenAI...');
     console.log('📋 Prompt:', prompt);

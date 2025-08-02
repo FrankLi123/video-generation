@@ -19,7 +19,6 @@ export const scriptRouter = createTRPCRouter({
         console.log('🤖 Using OpenAI service for script generation...');
 
         const { generateSimpleVideoPrompt } = await import('@/lib/ai/openai');
-
         const script = await generateSimpleVideoPrompt(description);
 
         console.log('✅ Generated AI script:', script);
