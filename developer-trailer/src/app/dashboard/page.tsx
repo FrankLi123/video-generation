@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,7 +15,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-// Fixed Dialog imports
 import {
   Dialog,
   DialogContent,
@@ -64,11 +64,33 @@ interface Project {
 }
 
 export default function DashboardPage() {
+  const { user, loading, signOut } = useAuth()
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
-  // Add modal state
   const [videoModalOpen, setVideoModalOpen] = useState(false)
   const [currentVideo, setCurrentVideo] = useState<{url: string, title: string} | null>(null)
+
+  // Authentication protection
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/signin')
+    }
+  }, [user, loading, router])
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    )
+  }
+
+  // Don't render dashboard if user is not authenticated
+  if (!user) {
+    return null
+  }
 
   // Fetch real projects from database
   const { data: projects, isLoading, error } = api.project.getProjects.useQuery(undefined, {
@@ -193,8 +215,8 @@ export default function DashboardPage() {
     },
   ]
 
-  const { user, signOut } = useAuth()
-
+  // Remove this duplicate line: const { user, signOut } = useAuth()
+  
   const handleLogout = async () => {
     try {
       await signOut()

@@ -7,11 +7,20 @@ import { AnimatedSection } from "@/components/animated-section"
 import { HeroBackground } from "@/components/hero-background"
 import { ClientOnly } from "@/components/client-only"
 import { motion } from "framer-motion"
-import { Play, Sparkles, Zap, Clock, Star, ArrowRight, CheckCircle, Video, Wand2, Target } from "lucide-react"
+import { Play, Sparkles, Zap, Clock, Star, ArrowRight, CheckCircle, Video, Wand2, Target, User, LogOut } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { useAuth } from "@/lib/auth/auth-context"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function HomePage() {
+  const { user, signOut, loading } = useAuth()
   const features = [
     {
       icon: <Wand2 className="w-6 h-6" />,
@@ -80,10 +89,12 @@ export default function HomePage() {
               transition={{ duration: 0.6 }}
               className="flex items-center space-x-2"
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                <Video className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-heading font-bold">TrailerAI</span>
+              <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+                  <Video className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-heading font-bold">TrailerAI</span>
+              </Link>
             </motion.div>
 
             <motion.div
@@ -95,7 +106,7 @@ export default function HomePage() {
               <Link href="#features" className="text-text-secondary hover:text-text-primary transition-colors">
                 Features
               </Link>
-              <Link href="#pricing" className="text-text-secondary hover:text-text-primary transition-colors">
+              <Link href="/pricing" className="text-text-secondary hover:text-text-primary transition-colors">
                 Pricing
               </Link>
               <Link href="#examples" className="text-text-secondary hover:text-text-primary transition-colors">
@@ -112,14 +123,55 @@ export default function HomePage() {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="flex items-center space-x-4"
             >
-              <Button variant="ghost" className="text-text-secondary hover:text-text-primary">
-                <Link href="/signin">Sign In</Link>
-              </Button>
-              <Link href="/generate">
-                <Button className="bg-primary hover:bg-primary/90 text-background-primary font-medium shadow-glow">
-                  Start Creating
-                </Button>
-              </Link>
+              {loading ? (
+                <div className="w-20 h-9 bg-gray-200 animate-pulse rounded"></div>
+              ) : user ? (
+                <>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="flex items-center space-x-2 text-text-secondary hover:text-text-primary">
+                        <User className="w-4 h-4" />
+                        <span className="hidden sm:inline">{user.email}</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard" className="flex items-center">
+                          <User className="w-4 h-4 mr-2" />
+                          Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/pricing" className="flex items-center">
+                          <Star className="w-4 h-4 mr-2" />
+                          Pricing
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => signOut()} className="flex items-center text-red-600">
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Sign Out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Link href="/generate">
+                    <Button className="bg-primary hover:bg-primary/90 text-background-primary font-medium shadow-glow">
+                      Start Creating
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" className="text-text-secondary hover:text-text-primary">
+                    <Link href="/signin">Sign In</Link>
+                  </Button>
+                  <Link href="/generate">
+                    <Button className="bg-primary hover:bg-primary/90 text-background-primary font-medium shadow-glow">
+                      Start Creating
+                    </Button>
+                  </Link>
+                </>
+              )}
             </motion.div>
           </nav>
         </div>

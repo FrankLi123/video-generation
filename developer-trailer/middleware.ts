@@ -27,59 +27,24 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Temporarily disable auth protection for testing
-  // TODO: Re-enable after milestone 3 testing
-  /*
-  // Optional: Add protection for specific routes
-  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
-    // no user, potentially respond by redirecting the user to the login page
+  // Protect dashboard and other authenticated routes
+  if (!user && (request.nextUrl.pathname.startsWith('/dashboard') || 
+                request.nextUrl.pathname.startsWith('/generate') ||
+                request.nextUrl.pathname.startsWith('/projects'))) {
     const url = request.nextUrl.clone()
-    url.pathname = '/auth/signin'
+    url.pathname = '/signin'
     return NextResponse.redirect(url)
   }
-
-  // If user exists and is trying to access auth pages, redirect to dashboard
-  if (user && (request.nextUrl.pathname.startsWith('/auth/signin') || request.nextUrl.pathname === '/')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
-  }
-  */
-
-  // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
-  // creating a new response object with NextResponse.next() make sure to:
-  // 1. Pass the request in it, like so:
-  //    const myNewResponse = NextResponse.next({ request })
-  // 2. Copy over the cookies, like so:
-  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-  // 3. Change the myNewResponse object to fit your needs, but avoid changing
-  //    the cookies!
-  // 4. Finally:
-  //    return myNewResponse
-  // If this is not done, you may be causing the browser and server to go out
-  // of sync and terminate the user's session prematurely!
 
   return supabaseResponse
 }
 
 export const config = {
   matcher: [
-    /*
-     * Temporarily disable middleware for debugging
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
-     */
-    // '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
