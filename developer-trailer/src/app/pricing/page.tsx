@@ -419,6 +419,29 @@ export default function PricingPage() {
             </div>
           </div>
         </AnimatedSection> */}
+        {/* Legal Disclaimer Section - Add before closing div */}
+        <AnimatedSection delay={0.8}>
+          <div className="text-center mt-12 pt-8 border-t border-background-tertiary">
+            <p className="text-text-muted text-sm mb-2">
+              By purchasing credits, you agree to our{" "}
+              <Link href="/terms-and-conditions" className="text-primary hover:underline">
+                Terms of Service
+              </Link>
+              {" "}and{" "}
+              <Link href="/privacy-policy" className="text-primary hover:underline">
+                Privacy Policy
+              </Link>
+              .
+            </p>
+            <p className="text-text-muted text-sm">
+              Questions about refunds? Check our{" "}
+              <Link href="/refund-policy" className="text-primary hover:underline">
+                Refund Policy
+              </Link>
+              {" "}or contact support.
+            </p>
+          </div>
+        </AnimatedSection>
       </div>
     </div>
   )

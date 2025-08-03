@@ -481,11 +481,14 @@ export default function HomePage() {
           <div className="border-t border-background-tertiary pt-8 flex flex-col md:flex-row items-center justify-between">
             <p className="text-text-muted text-sm">© 2024 TrailerAI. All rights reserved.</p>
             <div className="flex items-center space-x-6 mt-4 md:mt-0">
-              <Link href="#" className="text-text-muted hover:text-text-primary transition-colors text-sm">
+              <Link href="/privacy-policy" className="text-text-muted hover:text-text-primary transition-colors text-sm">
                 Privacy Policy
               </Link>
-              <Link href="#" className="text-text-muted hover:text-text-primary transition-colors text-sm">
+              <Link href="/terms-and-conditions" className="text-text-muted hover:text-text-primary transition-colors text-sm">
                 Terms of Service
+              </Link>
+              <Link href="/refund-policy" className="text-text-muted hover:text-text-primary transition-colors text-sm">
+                Refund Policy
               </Link>
             </div>
           </div>

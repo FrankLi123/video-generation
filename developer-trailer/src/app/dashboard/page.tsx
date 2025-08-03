@@ -284,6 +284,12 @@ export default function DashboardPage() {
                     <CreditCard className="w-4 h-4 mr-2" />
                     Billing
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/refund-policy">
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Refund Policy
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="w-4 h-4 mr-2" />
